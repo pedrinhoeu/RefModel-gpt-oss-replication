@@ -1,66 +1,122 @@
-# RefModel
+# RefModel Replication — gpt-oss:20b Reproduction Kit
 
-![Logo-RefModel](docs/RefModel.png)
+Reproduction kit for **"Evaluating gpt-oss for Refactoring Detection: A Replication
+of RefModel"**, produced for the Experimental Software Engineering course at UFCG
+(Stage 3 / Etapa 3 deliverable).
 
+This work replicates the [RefModel](https://github.com/brain-ufcg/RefModel) study,
+evaluating the open-weight model **gpt-oss:20b**, run locally via
+[Ollama](https://ollama.com/), on RefModel's refactoring-detection task and
+datasets.
 
-### About 
-RefModel is a tool that leverages foundation models to automatically detect code refactoring operations in program transformations. By default, it analyzes both the original and transformed versions of a program to identify refactorings. However, when dealing with large programs that exceed the model’s context window, RefModel can alternatively operate by analyzing only the code differences (diffs) introduced by the transformation.
+This repository does **not** contain RefModel's source code, datasets, or
+evaluation scripts — only the results and paper produced by this replication.
+To reproduce the experiment you clone the original RefModel repository as
+described below.
 
 ---
 
 ## Contents
-This repository contains the source code, datasets, and results related to the model evaluations:
 
-- **Demonstrations** – [`docs/`](./docs/)  
-  Visual assets including GIFs and videos that demonstrate how the model works in both Full and Small Programs and Diffs of Large Programs.
-  
-- **Usage Instructions** – [`RefModel/`](./RefModel)
-  Step-by-step guides on how to use the model.
-
-- **Dataset** – [`dataset/`](./dataset/)
-Contains  the full datasets used in the evaluation: Full and Small Programs and Diffs of Large Programs.
-
-- **Performance Results** – [`evaluation/`](./evaluation/)
-Contains  precision and recall metrics using different models. We compare the results of our RefModel against tools like RefactoringMiner, RefDiff, and ReExtractor+ across both datasets.
----
-
-### Currently Supported Refactorings
-RefModel currently supports 19 distinct refactoring types, with an architecture designed for easy extension by simply adding a natural language definition for each new refactoring in a text file.
-
-1. **Add Method Parameter**  
-2. **Remove Method Parameter**  
-3. **Rename Method**  
-4. **Rename Class**  
-5. **Rename Package**  
-6. **Rename Field**  
-7. **Extract Class**  
-8. **Extract Superclass**  
-9. **Inline Method**  
-10. **Pull Up Method**  
-11. **Push Down Method**  
-12. **Pull Up Field**  
-13. **Push Down Field**  
-14. **Inline Class**  
-15. **Extract Interface**  
-16. **Move Method**  
-17. **Move Field**  
-18. **Replace Magic Number with Constant**  
-19. **Encapsulate Field**
+- [`results/`](./results/) — result spreadsheets produced by this replication
+  (per-case results for the synthetic dataset, summarized below).
+- [`paper/`](./paper/) — the paper describing this replication (PDF, see the
+  folder's [README](./paper/README.md) for status).
 
 ---
 
-## How to Run RefModel
+## Requirements
 
-You can run `RefModel` in two ways:
-
-* **Terminal**: Use the command-line script located in [`./RefModel`](./RefModel).
-* **Notebook**: Use the Colab notebook available in [`./RefModel/notebook`](./RefModel/notebook).
+- [Ollama](https://ollama.com/) runtime
+- The `gpt-oss:20b` model pulled locally (`ollama pull gpt-oss:20b`)
+- A machine with at least ~16 GB RAM (this replication ran on a MacBook Pro M3,
+  18 GB unified memory)
+- Python 3 with the dependencies listed in RefModel's own `requirements.txt`
+  (installed after cloning RefModel, see below)
+- A clone of the original [RefModel repository](https://github.com/brain-ufcg/RefModel),
+  which provides the pipeline script, refactoring definitions, and datasets used here
 
 ---
 
-# Research
-## How to cite RefactoringMiner
-If you are using RefModel in your research, please cite the following paper:
+## Reproduction steps
+
+### 1. Clone RefModel
+
+```bash
+git clone https://github.com/brain-ufcg/RefModel.git
+cd RefModel
+```
+
+### 2. Install Ollama and pull the model
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull gpt-oss:20b
+```
+
+### 3. Install Python dependencies
+
+```bash
+cd RefModel
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 4. Run the pipeline
+
+From inside the `RefModel/` subfolder, against RefModel's own datasets
+(`dataset/full-and-small-programs.csv` for the synthetic/JDolly cases,
+`dataset/diff-of-large-programs.csv` for the real-world diffs):
+
+```bash
+# Synthetic (JDolly) dataset — full-file mode
+python3 RefModel.py --mode complete --backend ollama \
+  --model gpt-oss:20b --temperature 0.6 \
+  --csv ../dataset/full-and-small-programs.csv \
+  --definitions definitions/refactoring_definitions.txt \
+  --out data/output/gpt-oss-20b-synthetic-results.csv
+
+# Real-world dataset — diff-only mode
+python3 RefModel.py --mode diff --backend ollama \
+  --model gpt-oss:20b --temperature 0.6 \
+  --csv ../dataset/diff-of-large-programs.csv \
+  --definitions definitions/refactoring_definitions.txt \
+  --out data/output/gpt-oss-20b-realworld-results.csv
+```
+
+### 5. Compute precision/recall
+
+Compare the `LLM Answer` column of each output CSV against the dataset's
+ground-truth refactoring type per case (as RefModel's own
+`evaluation/` folder does) to obtain precision and recall per refactoring
+type. The per-case results and derived metrics from this replication are in
+[`results/`](./results/).
+
+---
+
+## Results summary
+
+| Dataset               | # Transformations | Precision | Recall |
+|-----------------------|-------------------:|----------:|-------:|
+| Synthetic (JDolly)     |                858 |     94.5% |  95.4% |
+| Real-world (diffs)     |                 44 |     84.4% |  86.4% |
+
+**Setup:** Ollama, `gpt-oss:20b`, temperature `0.6`, MacBook Pro M3 (18 GB RAM).
+
+Detailed per-case results:
+
+- Synthetic (JDolly, 858 cases):
+  [`results/gpt-oss-20b-synthetic-jdolly-858-results.csv`](./results/gpt-oss-20b-synthetic-jdolly-858-results.csv)
+- Real-world (64 diffs — 44 Java, 10 Go, 10 Python; headline metrics refer to
+  the Java subset):
+  [`results/gpt-oss-20b-realworld-diffs-results.csv`](./results/gpt-oss-20b-realworld-diffs-results.csv)
+
+---
+
+## Credits
+
+This is a replication of RefModel. All credit for the original tool, datasets,
+and evaluation methodology goes to its authors:
 
 ```bibtex
 @inproceedings{refModel2025,
@@ -72,76 +128,4 @@ If you are using RefModel in your research, please cite the following paper:
 }
 ```
 
-### Structure summary
-
-The structure is shown below:
-
-## Directory tree
-
-```text
-├── dataset/                                   # CSV datasets used as input
-│   ├── full-and-small-programs.csv            # dataset Full and Small Programs
-│   └── diff-of-large-programs.csv             # dataset Diff of Large Programs
-│
-├── docs/                                      # Visual documentation and demo media
-│   ├── full-and-small-programs.gif            # GIF – Full & Small Programs
-│   ├── diff-of-large-programs.gif             # GIF – Diffs of Large Programs
-│   ├── full-and-small-programs.mp4            # video – Full & Small Programs
-│   └── diff-of-large-programs.mp4             # video – Diffs of Large Programs
-│
-├── evaluation/                                # Evaluation outputs from models
-│   ├── full-and-small-programs/               # Metrics for full and small programs
-│   │   └── results.csv                        # Precision/recall for each model
-│   │
-│   └── diff-of-large-programs/                # Metrics for large diff-only programs
-│       ├── golang/                            # Go language
-│       │   ├── gemini-2.5-pro.pdf             # Gemini 2.5 Pro results
-│       │   └── o4-mini-high.pdf               # O4-mini-high results
-│       │
-│       ├── java/                              # Java language
-│       │   ├── gemini-2.5-pro.pdf             # Gemini 2.5 Pro results
-│       │   └── o4-mini-high.pdf               # O4-mini-high results
-│       │
-│       ├── python/                            # Python language
-│       │   ├── gemini-2.5-pro.pdf             # Gemini 2.5 Pro results
-│       │   └── o4-mini-high.pdf               # O4-mini-high results
-│       │
-│       └── results.csv                        # Aggregated metrics across all models
-│
-├── RefModel/                                  # Main source code and configuration
-│   ├── RefModel.py                            # Core script to run the tool
-│   ├── notebook/
-│   │   └── RefModel.ipynb                     # notebook
-│   │
-│   ├── requirements.txt                       # Required Python dependencies
-│   ├── README.md                              # Documentation for the RefModel module
-│   │
-│   ├── resources/                             # definitions
-│   │   └── refactoring_definitions.txt        # List of predefined refactoring types
-│   │
-│   └── data/                                  # Folder for generated I/O files
-│       ├── input/                             # CSV files to be processed
-│       │   └── your.csv                       # Example input file
-│       │
-│       └── output/                            # Output results from execution
-│
-├── README.md                                  # Project overview and instructions
-└── .gitignore                                 # Files ignored by Git
-
-```
-
-### Running
-
-The screencast below shows the process running:
-
-### Running: Full and Small Programs
-
-The following screencast demonstrates how to use RefModel to analyze both the original and transformed versions of a small program to detect refactorings.
-
-![how to run 'complete'](docs/full-and-small-programs-ollama.gif)
-
-### Running: Diff of Large Programs
-
-The following screencast demonstrates how to use RefModel to analyze the code differences (diffs) introduced by transformations applied to larger programs.
-
-![how to run 'diff'](docs/diff-of-large-programs-claude.gif)
+Original repository: [github.com/brain-ufcg/RefModel](https://github.com/brain-ufcg/RefModel)
