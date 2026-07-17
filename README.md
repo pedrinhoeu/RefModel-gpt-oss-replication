@@ -54,35 +54,21 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull gpt-oss:20b
 ```
 
-### 3. Install Python dependencies
+### 3. Run the notebook
 
-```bash
-cd RefModel
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-```
+Open the RefModel notebook on Google Colab or locally:
 
-### 4. Run the pipeline
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/brain-ufcg/RefModel/blob/main/RefModel/notebook/RefModel.ipynb)
 
-From inside the `RefModel/` subfolder, against RefModel's own datasets
-(`dataset/full-and-small-programs.csv` for the synthetic/JDolly cases,
-`dataset/diff-of-large-programs.csv` for the real-world diffs):
+Or access it directly on GitHub:
+[RefModel/notebook/RefModel.ipynb](https://github.com/brain-ufcg/RefModel/blob/main/RefModel/notebook/RefModel.ipynb)
 
-```bash
-# Synthetic (JDolly) dataset — full-file mode
-python3 RefModel.py --mode complete --backend ollama \
-  --model gpt-oss:20b --temperature 0.6 \
-  --csv ../dataset/full-and-small-programs.csv \
-  --definitions definitions/refactoring_definitions.txt \
-  --out data/output/gpt-oss-20b-synthetic-results.csv
+### 4. Configure the model
 
-# Real-world dataset — diff-only mode
-python3 RefModel.py --mode diff --backend ollama \
-  --model gpt-oss:20b --temperature 0.6 \
-  --csv ../dataset/diff-of-large-programs.csv \
-  --definitions definitions/refactoring_definitions.txt \
-  --out data/output/gpt-oss-20b-realworld-results.csv
-```
+Inside the notebook, set the model to `gpt-oss:20b` and the temperature
+to `0.6`. Run all cells to execute the pipeline against the desired
+dataset (synthetic or real-world). The notebook handles data loading,
+prompt construction, model querying, and result collection.
 
 ### 5. Compute precision/recall
 
